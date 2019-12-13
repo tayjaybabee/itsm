@@ -1,7 +1,9 @@
 import os
 import shutil
+import inquirer
 from cmd import Cmd
 from subprocess import call
+from tqdm import trange, tqdm
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -14,7 +16,43 @@ script_list = [
 class MyPrompt(Cmd):
 
     prompt = 'ITsm> '
-    intro = "Welcome! Type ? to list commands"
+    intro = "Welcome! Type ? (or help) to list commands"
+    
+    
+    # A function to be used to confirm action with the user
+    def query_yes_no(question, default="yes"):
+        """Ask a yes/no question via raw_input() and return their answer.
+
+        "question" is a string that is presented to the user.
+        "default" is the presumed answer if the user just hits <Enter>.
+            It must be "yes" (the default), "no" or None (meaning
+            an answer is required of the user).
+
+        The "answer" return value is True for "yes" or False for "no".
+        """
+        valid = {"yes": True, "y": True, "ye": True,
+                "no": False, "n": False}
+        if default is None:
+            prompt = " [y/n] "
+        elif default == "yes":
+            prompt = " [Y/n] "
+        elif default == "no":
+            prompt = " [y/N] "
+        else:
+            raise ValueError("invalid default answer: '%s'" % default)
+
+        while True:
+            sys.stdout.write(question + prompt)
+            choice = input().lower()
+            if default is not None and choice == '':
+                return valid[default]
+            elif choice in valid:
+                return valid[choice]
+            else:
+                sys.stdout.write("Please respond with 'yes' or 'no' "
+                                "(or 'y' or 'n').\n")
+
+    
 
     def do_exit(self, inp):
         print("Happy computing!")
@@ -27,10 +65,8 @@ class MyPrompt(Cmd):
         global ROOT_DIR
         global script_list
         print('Very well, installing personal system management script suite')
-        print(ROOT_DIR)
-        # os.mkdir(ROOT_DIR + '/happy')
         home = os.path.expanduser("~")
-        print(home)
+        p_bar = tqdm(script_list)
         if os.path.exists(home + '/.bin'):
             print('Found binary directory for user.')
             source = ROOT_DIR + '/scripts/'
@@ -39,15 +75,16 @@ class MyPrompt(Cmd):
                 print('Found ITsm directory from previous install')
             else:
                 os.mkdir(dest)
-            for script in script_list:
+            for script in p_bar:
                 file = source + script + '.sh'
                 dest_file = dest + '/' + script
-                print('Copying %s to %s' % (file, dest_file))
+                p_bar.set_description('Copying %s to %s' % (file, dest_file))
                 shutil.copyfile(file, dest_file)
-                print('File copied.')
-                print('Making executable')
+                p_bar.set_description('File copied')
+                p_bar.set_description('Making %s executable...' % dest_file)
                 call(['chmod', '+x', dest_file])
-                print('Done!')
+        else:
+
 
 
     def do_uninstall(self, inp):

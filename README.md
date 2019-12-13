@@ -1,2 +1,2 @@
 # itsm
-inspyre technologies system management suite
+python3 ./itsm.py
