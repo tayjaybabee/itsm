@@ -29,5 +29,7 @@ def setup_logger(callerName):
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
+    logger.info(f'Logger started for %s' % callerName)
 
     return logger
+

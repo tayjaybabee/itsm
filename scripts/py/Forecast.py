@@ -3,20 +3,34 @@ import requests
 import commentjson
 import os.path as path
 from scripts.py.application import logger
+from scripts.py.application import itsmConfig as config
 
 name = 'adaForecast'
-config = {}
 settings = {}
 apiKey = ''
 darkSkyURL = 'https://api.darksky.net/forecast/'
 connLight = False
 
+sg.change_look_and_feel('DarkAmber')
+
 log = logger.setup_logger(name)
 log.info('The logger is awake')
+
+from scripts.py.application import itsmConfig as config
 log.debug('Determining where in the filesystem I am')
 
 appPath = path.dirname(path.abspath(__file__))
 log.debug(' Found path: %s' % appPath)
+
+confPath = path.abspath(appPath + '/forecast/conf')
+
+existingConfFilepath = path.abspath(confPath + '/forecast_conf.json')
+
+if path.exists(confPath + '/forecast_conf.json'):
+    confFile = path.abspath(confPath + '/forecast_conf.json')
+else:
+    confFile = path.abspath(confPath + '/example_forecast_conf.json')
+config.readConf(confFile)
 
 mediaDir = path.abspath(appPath + '/media')
 imagesDir = path.abspath(mediaDir + '/images')
@@ -35,21 +49,7 @@ def check_key():
         connLight = False
 
 
-confPath = path.abspath(appPath + '/forecast/conf')
-log.info(' Checking for config file in %s' % confPath)
-existingConfFilepath = path.abspath(confPath + '/forecast_conf.json')
-log.debug(' Looking for %s' % existingConfFilepath)
 
-if path.exists(confPath + '/forecast_conf.json'):
-    confFile = path.abspath(confPath + '/forecast_conf.json')
-else:
-    confFile = path.abspath(confPath + '/example_forecast_conf.json')
-
-    with open(confFile, 'r') as confInfo:
-        info = commentjson.loads(confInfo.read())
-        config.update(info)
-        settings = config['applets']['forecast']['settings']
-        print(settings)
 
 log.debug('Looking for darksky API key')
 apiKey = settings['api']['darksky']['key']
@@ -88,8 +88,7 @@ layout = [
     [sg.Button('OK')]
 ]
 
-def load_config():
-    global config
+
 
 
 mainWin = sg.Window('adaForecast', layout)
@@ -107,9 +106,9 @@ while True:
         log.debug('User entered the location window')
         localeWinLayout = [
             [sg.Text('Location Information', size=(30, 1), justification='center', font=("Helvetica", 25), relief=sg.RELIEF_RIDGE)],
-            [sg.Text('Coordinates', size=(30, 1), justification='left', font=("Helvetica", 18), relief=sg.RELIEF_RIDGE)],
-            [sg.Text('Latitude'), sg.InputText('', justification='right', key='_LAT_')],
-            [sg.Text('Longitude'), sg.InputText('', justification='right', key='_LNG_')],
+            [sg.Frame( layout = [
+                [sg.Text('Latitude', justification='left'), sg.InputText('',  key='_LAT_')],
+                [sg.Text('Longitude', justification='left'), sg.InputText('',  key='_LNG_')]], title='Coordinates', relief=sg.RELIEF_SUNKEN, tooltip='Put your GPS cords here')],
             [sg.Button('OK'), sg.Button('Cancel')]
         ]
 

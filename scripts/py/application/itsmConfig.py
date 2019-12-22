@@ -1,9 +1,25 @@
-import logger
+from scripts.py.application import logger
+import commentjson
+from os import path
 
-name = ITSMApp.ITSMConfig
+name = 'ITSMConfig'
 
 log = logger.setup_logger(name)
 log.info('The logger is awake')
+
+
+def readConf(file):
+    if path.exists(path.abspath(file)):
+        log.debug(f'Found %s' % file)
+        load_conf = file
+    else:
+        log.fatal('Please check documentation')
+
+    with open(load_conf, 'r') as confInfo:
+        info = commentjson.loads(confInfo.read())
+
+        return info
+
 
 
 def save(conf):
