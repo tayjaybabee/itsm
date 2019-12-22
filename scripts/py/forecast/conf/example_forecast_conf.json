@@ -59,15 +59,16 @@
         // 2. Provide location in the form of a physical address
         //    (Potentially far more accurate data at the cost of
         //    providing your address to the API
-        "location": {
+        "address": {
+          "region": false,
+          "city": false,
+          "zip": false,
           "lat": false,
           "lon": false,
-          "address": {
-            "address": false,
-            "city": false,
-            "region": false,
-            "postalCode": false
-          }
+          "timezone": false,
+          "isp": false,
+        },
+        "street_address": false
         },
 
         // This is the 'general preferences' block, I guess

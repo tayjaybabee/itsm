@@ -3,10 +3,8 @@ import requests
 import commentjson
 import os.path as path
 from scripts.py.application import logger
-from scripts.py.application import itsmConfig as config
 
 name = 'adaForecast'
-settings = {}
 apiKey = ''
 darkSkyURL = 'https://api.darksky.net/forecast/'
 connLight = False
@@ -36,7 +34,9 @@ mediaDir = path.abspath(appPath + '/media')
 imagesDir = path.abspath(mediaDir + '/images')
 
 def check_key():
-    global connLight
+    global connLight, log
+    log.debug('Checking provided key')
+
     test_url = darkSkyURL + apiKey + '/37.8267,-122.4233'
     res = requests.get(test_url)
     if res:
@@ -49,6 +49,58 @@ def check_key():
         connLight = False
 
 
+settings = config.readConf(confFile)['applets']['forecast']['settings']
+cords = False
+address = False
+
+
+def getByIP():
+    service = 'ip-api.com'
+    ip2gpURL = 'http://ip-api.com/json/?fields=city,zip,lat,lon,timezone,isp,region'
+    log.info('Checking for general location via user\'s IP Address with %s' % service)
+    res = requests.get(ip2gpURL)
+    if res.status_code == 200:
+        return res.json()
+
+
+
+
+def determine_cords():
+    global settings, log, address, cords
+    conf_locale = settings['location']
+    conf_addr = conf_locale['address']
+
+    log.debug('Checking to see if user has locale set...')
+    if conf_locale['lat']:
+        log.debug('Found entry for latitude, looking for longitude')
+        if conf_locale['lon']:
+            log.debug('Found entry for longitude')
+            log.debug('Feeding list containing [lat, lng] to \'cords\' ')
+            cords += [conf_locale['lat'], conf_locale['lon']]
+        else:
+            log.warning('Found latitude in config file but not longitude, ignoring both')
+            cords = False
+
+    else:
+        log.warning('Could not find an entry for user\'s latitude')
+        cords = False
+
+
+
+if not cords:
+    addy = getByIP()
+    settings = settings['location']
+    print(addy)
+    result = {}
+    for key in (settings.viewkeys() | addy.keys()):
+        if key in settings: result.setdefault(key, []).append(settings[key])
+        if key in addy: result.setdefault(key, []).append(addy[key])
+
+   print(result)
+
+
+
+print(settings)
 
 
 log.debug('Looking for darksky API key')
@@ -80,15 +132,12 @@ if connLight:
 else:
     lightImage = imagesDir + '/light_off.png'
 
-
 layout = [
     [sg.Menu(appMenu)],
     [sg.Text('Welcome to adaForecast!')],
     [sg.Text('Connection Status:'), sg.Image(lightImage, key='_STATUS_')],
     [sg.Button('OK')]
 ]
-
-
 
 
 mainWin = sg.Window('adaForecast', layout)
@@ -104,11 +153,19 @@ while True:
     if not localeWinActive and event == 'Location':
         localeWinActive = True
         log.debug('User entered the location window')
+
+        if cords:
+            guiLat = cords[0]
+            guiLng = cords[1]
+        else:
+            guiLat = ''
+            guiLng = ''
+
         localeWinLayout = [
             [sg.Text('Location Information', size=(30, 1), justification='center', font=("Helvetica", 25), relief=sg.RELIEF_RIDGE)],
             [sg.Frame( layout = [
-                [sg.Text('Latitude', justification='left'), sg.InputText('',  key='_LAT_')],
-                [sg.Text('Longitude', justification='left'), sg.InputText('',  key='_LNG_')]], title='Coordinates', relief=sg.RELIEF_SUNKEN, tooltip='Put your GPS cords here')],
+                [sg.Text('Latitude', justification='left'), sg.InputText(guiLat,  key='_LAT_')],
+                [sg.Text('Longitude', justification='left'), sg.InputText(guiLng,  key='_LNG_')]], title='Coordinates', relief=sg.RELIEF_SUNKEN, tooltip='Put your GPS cords here')],
             [sg.Button('OK'), sg.Button('Cancel')]
         ]
 
