@@ -9,6 +9,7 @@ config = {}
 settings = {}
 apiKey = ''
 darkSkyURL = 'https://api.darksky.net/forecast/'
+connLight = False
 
 log = logger.setup_logger(name)
 log.info('The logger is awake')
@@ -21,15 +22,17 @@ mediaDir = path.abspath(appPath + '/media')
 imagesDir = path.abspath(mediaDir + '/images')
 
 def check_key():
-    light =
+    global connLight
     test_url = darkSkyURL + apiKey + '/37.8267,-122.4233'
     res = requests.get(test_url)
     if res:
         log.info('Valid key!')
+        connLight = True
     else:
         log.warning('Invalid key!')
         log.debug('Popping popup to advise user of this')
         sg.PopupError('Invalid key!')
+        connLight = False
 
 
 confPath = path.abspath(appPath + '/forecast/conf')
@@ -72,11 +75,16 @@ check_key()
 
 appMenu = [['Settings', ['Location']]]
 
+if connLight:
+    lightImage = imagesDir + '/light_on.png'
+else:
+    lightImage = imagesDir + '/light_off.png'
+
 
 layout = [
     [sg.Menu(appMenu)],
     [sg.Text('Welcome to adaForecast!')],
-    [sg.Text('Connection Status:'), sg.Image(imagesDir + '/light_on.png', key='_STATUS_')],
+    [sg.Text('Connection Status:'), sg.Image(lightImage, key='_STATUS_')],
     [sg.Button('OK')]
 ]
 
@@ -84,19 +92,33 @@ def load_config():
     global config
 
 
-
 mainWin = sg.Window('adaForecast', layout)
-prefWin_active = False
-localeWin_active = False
+prefWinActive = False
+localeWinActive = False
 
 while True:
-    event, values = mainWin.read()
+    event, values = mainWin.Read(timeout=100)
     if event is None:
         log.info('User exited the app')
-    else:
-        log.info('EVENT: '+ event)
+        mainWin.Close()
 
-    if event in (None, 'Exit'):
-        break
+    if not localeWinActive and event == 'Location':
+        localeWinActive = True
+        log.debug('User entered the location window')
+        localeWinLayout = [
+            [sg.Text('Location Information', size=(30, 1), justification='center', font=("Helvetica", 25), relief=sg.RELIEF_RIDGE)],
+            [sg.Text('Coordinates', size=(30, 1), justification='left', font=("Helvetica", 18), relief=sg.RELIEF_RIDGE)],
+            [sg.Text('Latitude'), sg.InputText('', justification='right', key='_LAT_')],
+            [sg.Text('Longitude'), sg.InputText('', justification='right', key='_LNG_')],
+            [sg.Button('OK'), sg.Button('Cancel')]
+        ]
+
+        localeWin = sg.Window('adaForecast-Location Settings', localeWinLayout)
+
+    if localeWinActive:
+        localeEvent, localeVal = localeWin.Read(timeout=100)
+        if localeEvent is None or localeEvent == 'Cancel':
+            localeWinActive = False
+            localeWin.Close()
 
 mainWin.close()
