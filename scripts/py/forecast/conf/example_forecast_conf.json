@@ -1,0 +1,114 @@
+{
+
+  // PLEASE READ BEFORE EDITING MANUALLY:
+  // All the settings found in this file can be changed from
+  // within the GUI with minimal risk of mis-applying of
+  // (or combination of) settings
+  //
+  // If you still insist on editing your configuration
+  // manually please make a copy of this file and place
+  // it in the same directory. Give it the name
+  // forecast_conf.json and edit that one.
+
+  "applets": {
+    "forecast": {
+      "settings": {
+
+        // This applet intends to be part of a larger
+        // suite of programs that has information-sharing
+        // capability with our servers
+        //
+        // IMPORTANT NOTE:
+        // See big block of TL;DR at the bottom of this file for
+        // some unsolicited ranting about how we feel about the
+        // extreme importance of treating personal data with
+        // care and respect when someone has allowed you to use
+        // it for their benefit.
+        "stats": {
+          "enabled": false,
+          "enabledOn": false,
+          "enabledOff": false,
+          "file": {
+            "path": "conf/",
+            "name": "adaF_stats",
+            "ext": "json"
+          }
+        },
+
+        // adaForecast doesn't use machine-learning to forecast
+        // the weather....yet. BUT we're not just RNG'ing it over
+        // here....(the API provider might be though, I dunno)
+        //
+        // You need an API key to get your weather information. It's
+        // free, and you can get it from here:
+        //
+        // https://darksky.net/dev
+        "api": {
+          "darksky": {
+            "key": false
+          }
+        },
+
+        // There are two options here, essentially, that you can
+        // pick from in providing your location manually, below.
+        //
+        // 1. Get weather by a provided latitude and longitude
+        //     (Possibly less accurate, and in some cases this
+        //     is wildly true)
+        //
+        // 2. Provide location in the form of a physical address
+        //    (Potentially far more accurate data at the cost of
+        //    providing your address to the API
+        "location": {
+          "lat": false,
+          "lon": false,
+          "address": {
+            "address": false,
+            "city": false,
+            "region": false,
+            "postalCode": false
+          }
+        },
+
+        // This is the 'general preferences' block, I guess
+        //
+        // units can be imperial, metric, or kelvin
+        "preferences": {
+          "units": "imperial",
+          "theme": "DarkAmber"
+        }
+      },
+      "sInfo": {
+        "type": "pyLang"
+      }
+    }
+  }
+}
+
+
+        // The data that the stats configuration block focuses
+        // on will be stripped of all personally-identifiable
+        // information other than general (zip code) location.
+        // If (in the future) we develop a feature/service that
+        // can take advantage of having a non-anonymized version
+        // of your system/configuration/program use/etc statistics
+        // we make three promises:
+        //
+        // Said service/feature will be OPT-OUT by default for every
+        // new and existing user, and will require an explicit request
+        // from that user to OPT-IN
+        //
+        // We are not interested, nor do we ever plan to be interested in
+        // exchanging data with, for, or on behalf of any third-party
+        // advertising or data collection entity. Period. These companies
+        // have been greedy with our data while also not caring about your
+        // right to privacy
+        //
+        // We will exhaust every legal avenue to protect your private data
+        // from any person, company, agency, intelligence service, etc seeking
+        // to attain, or change any of your data that you do not explicitly
+        // authorize yourself.
+        //
+        // (Side note: The primary way we intend on fulfilling these promises
+        //     is to make sure as much data as possible never leaves your own
+        //     local network unless explicitly chosen by you to be exposed.)

@@ -1,0 +1,48 @@
+{
+
+  "prefs": {
+    "grabAnywhere": true
+  },
+  // The following section contains information about
+  // the script itself, the language (and version),
+  // the file name, the file path, and the file extension
+  "s_info": {
+    "type": {
+      "pyLang": {
+        "deps": [
+          "pysimplegui",
+          "pygithub",
+          "commentjson"
+          // For these comments
+        ],
+        "ver": "3"
+      }
+    },
+    // Don't manually adjust this unless you're
+    // confidant you know what you're doing
+    "filename": {
+      "name": "git_utils",
+      "ext": "py"
+    }
+  },
+  // Change the below string if you want to change
+  // where ITSM::GitUtils will clone your repositories
+  "clonePath": "appRoot/git_clones",
+  // You must have either a Github API key to supply to
+  // the keyAuth[key] config entry OR have your authType
+  // as 'pass' and login through the application
+  "auth": {
+    "user": {
+      "authType": "pass",
+      "name": "null"
+    },
+    // Enter your Github API key (if you have one)
+    "keyAuth": {
+      "key": "null"
+    },
+    // Don't manually adjust this!
+    "passAuth": {
+      "passSaved": false
+    }
+  }
+} //git_utils_conf.json}
