@@ -21,11 +21,11 @@ def readConf(file):
 
 
 
-def save(conf):
+def save(settings, conf_filename):
     global log
     log.info('Received request to save config file')
 
     with open(conf_filename, 'w') as confFile:
         import json
-        json.dump(config, confFile)
+        json.dump(settings, confFile)
     log.info('Saved!')

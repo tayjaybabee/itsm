@@ -1,5 +1,4 @@
 {
-
   // PLEASE READ BEFORE EDITING MANUALLY:
   // All the settings found in this file can be changed from
   // within the GUI with minimal risk of mis-applying of
@@ -13,7 +12,6 @@
   "applets": {
     "forecast": {
       "settings": {
-
         // This applet intends to be part of a larger
         // suite of programs that has information-sharing
         // capability with our servers
@@ -34,7 +32,6 @@
             "ext": "json"
           }
         },
-
         // adaForecast doesn't use machine-learning to forecast
         // the weather....yet. BUT we're not just RNG'ing it over
         // here....(the API provider might be though, I dunno)
@@ -48,7 +45,6 @@
             "key": false
           }
         },
-
         // There are two options here, essentially, that you can
         // pick from in providing your location manually, below.
         //
@@ -82,6 +78,7 @@
       }
     }
   }
+}
 
 
         // The data that the stats configuration block focuses

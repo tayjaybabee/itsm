@@ -46,14 +46,13 @@ if not settings['address']['lat']:
     log.warn('Unable to find location info in settings. Looking for general location via IP address...')
     log.debug('Calling IPtoGP')
     findAddress = getByIP()
-    setAddress = settings['address']
-    location = {}
-    for key in (findAddress.viewkeys() | setAddress.keys()):
-        if key in settings: location.setdefault(key, []).append(settings[key])
-        if key in findAddress: location.setdefault(key, []).append(findAddress[key])
+    settings['address'] = findAddress
+    location = settings['address']
 
 else:
     location = settings['address']
+
+config.save(settings, existingConfFilepath)
 
 region = location['region']
 city = location['city']
