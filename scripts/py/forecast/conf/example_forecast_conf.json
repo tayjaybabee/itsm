@@ -28,7 +28,7 @@
           "enabledOff": false,
           "file": {
             "path": "conf/",
-            "name": "adaF_stats",
+            "name": "forecast_stats",
             "ext": "json"
           }
         },

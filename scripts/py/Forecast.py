@@ -3,6 +3,7 @@
 import PySimpleGUI as sg
 import os.path as path
 import sys
+
 sys.path.append(path.abspath('.'))
 from scripts.py.application.logger import setup_logger
 from scripts.py.forecast.IPtoGP import getByIP
@@ -17,10 +18,10 @@ name = 'Forecast'
 log = setup_logger(name)
 log.info('The logger is awake')
 
-from scripts.py.application import itsmConfig as config
+from scripts.py.application import conf
 
 log.debug('Determining where in the filesystem I am')
-
+new_key = False
 
 appPath = path.dirname(path.abspath(__file__))
 log.debug(' Found path: %s' % appPath)
@@ -35,24 +36,26 @@ if path.exists(confPath + '/forecast_conf.json'):
 else:
     confFile = path.abspath(confPath + '/example_forecast_conf.json')
 
-settings = config.readConf(confFile)['applets']['forecast']['settings']
+settings = conf.readConf(confFile)
+
+location = settings['applets']['forecast']['settings']['address']
+print(location)
+print(settings)
 
 mediaDir = path.abspath(appPath + '/media')
 
 cords = False
-address = False
 
-if not settings['address']['lat']:
-    log.warn('Unable to find location info in settings. Looking for general location via IP address...')
+if not location['lat']:
+    log.warning('Unable to find location info in settings. Looking for general location via IP address...')
     log.debug('Calling IPtoGP')
     findAddress = getByIP()
-    settings['address'] = findAddress
-    location = settings['address']
+    settings['applets']['forecast']['settings']['address'].update(findAddress)
 
 else:
-    location = settings['address']
+    location = settings['applets']['forecast']['settings']['address']
 
-config.save(settings, existingConfFilepath)
+conf.save(settings, existingConfFilepath)
 
 region = location['region']
 city = location['city']
@@ -62,25 +65,27 @@ lon = location['lon']
 
 log.debug('Found location information %s' % location)
 
-sg.change_look_and_feel(settings['preferences']['theme'])
+print(settings)
+
+sg.change_look_and_feel(settings['applets']['forecast']['settings']['preferences']['theme'])
 
 log.debug('Looking for darksky API key')
-if settings['api']['darksky']['key']:
+if settings['applets']['forecast']['settings']['api']['darksky']['key']:
     log.debug('Found key')
 else:
     log.warning('Did not find key!')
     log.debug('Popping up window to ask user for API key')
-    key = sg.PopupGetText('Could not find DarkSky API Key. Please enter it below!',)
+    key = sg.PopupGetText('Could not find DarkSky API Key. Please enter it below!', )
     log.debug('User entered %s' % key)
     if key is None:
         log.fatal('User did not provide a key and closed the window')
         exit(1)
     else:
         log.info(key)
-        settings['api']['darksky']['key'] = key
+        settings['applets']['forecast']['settings']['api']['darksky']['key'] = key
 
-
-apiKey = settings['api']['darksky']['key']
+apiKey = settings['applets']['forecast']['settings']['api']['darksky']['key']
+conf.save(settings, existingConfFilepath)
 
 if check_key(apiKey):
     log.debug('ConnLight On')

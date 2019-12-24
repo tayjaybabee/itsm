@@ -7,6 +7,16 @@ name = 'ITSMConfig'
 log = logger.setup_logger(name)
 
 
+def save(settings, conf_filename):
+    global log
+    log.info('Received request to save config file')
+
+    with open(conf_filename, 'w') as confFile:
+        import json
+        json.dump(settings, confFile)
+    log.info('Saved!')
+
+
 def readConf(file):
     if path.exists(path.abspath(file)):
         log.debug('Found %s' % file)
@@ -21,11 +31,4 @@ def readConf(file):
 
 
 
-def save(settings, conf_filename):
-    global log
-    log.info('Received request to save config file')
 
-    with open(conf_filename, 'w') as confFile:
-        import json
-        json.dump(settings, confFile)
-    log.info('Saved!')

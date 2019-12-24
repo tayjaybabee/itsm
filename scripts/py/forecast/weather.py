@@ -45,8 +45,10 @@ def check_key(key):
         return False
 
 
-def getWeather(lat, lng, api_key):
-    apiURL = 'https://api.darksky.net/forecast/%s' % api_key + '/' + lat + ',' + lng
+def getWeather(lat, lon, api_key):
+    sep = ','
+    cords = str(str(lat) + sep + str(lon))
+    apiURL = 'https://api.darksky.net/forecast/%s' % api_key + '/' + cords
     res = requests.get(apiURL)
     if res.status_code == 200:
         print(res.json()['currently'])
