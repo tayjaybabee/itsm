@@ -5,12 +5,11 @@ from os import path
 name = 'ITSMConfig'
 
 log = logger.setup_logger(name)
-log.info('The logger is awake')
 
 
 def readConf(file):
     if path.exists(path.abspath(file)):
-        log.debug(f'Found %s' % file)
+        log.debug('Found %s' % file)
         load_conf = file
     else:
         log.fatal('Please check documentation')

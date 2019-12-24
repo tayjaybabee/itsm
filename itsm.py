@@ -1,6 +1,6 @@
 import os
 import shutil
-import inquirer
+import sys
 from cmd import Cmd
 from subprocess import call
 from tqdm import trange, tqdm

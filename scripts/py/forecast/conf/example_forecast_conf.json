@@ -66,11 +66,9 @@
           "lat": false,
           "lon": false,
           "timezone": false,
-          "isp": false,
+          "isp": false
         },
-        "street_address": false
-        },
-
+        "street_address": false,
         // This is the 'general preferences' block, I guess
         //
         // units can be imperial, metric, or kelvin
@@ -84,7 +82,6 @@
       }
     }
   }
-}
 
 
         // The data that the stats configuration block focuses

@@ -132,3 +132,7 @@ dmypy.json
 *.xml
 
 /.idea
+
+# ITSM Specific Conf Files:
+forecast_conf.json
+git_utils_conf.json

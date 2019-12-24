@@ -1,21 +1,22 @@
+""" Get realtime access to weather through the DarkSky API as well as data from various supported environment sensors """
+
 import PySimpleGUI as sg
-import requests
-import commentjson
 import os.path as path
 from scripts.py.application import logger
+from scripts.py.forecast.IPtoGP import getByIP
+from scripts.py.forecast.weather import check_key
+from scripts.py.forecast.weather import getWeather
+from scripts.py.forecast.weather import getIcon
 
-name = 'adaForecast'
-apiKey = ''
-darkSkyURL = 'https://api.darksky.net/forecast/'
-connLight = False
-
-sg.change_look_and_feel('DarkAmber')
+name = 'Forecast'
 
 log = logger.setup_logger(name)
 log.info('The logger is awake')
 
 from scripts.py.application import itsmConfig as config
+
 log.debug('Determining where in the filesystem I am')
+
 
 appPath = path.dirname(path.abspath(__file__))
 log.debug(' Found path: %s' % appPath)
@@ -25,86 +26,43 @@ confPath = path.abspath(appPath + '/forecast/conf')
 existingConfFilepath = path.abspath(confPath + '/forecast_conf.json')
 
 if path.exists(confPath + '/forecast_conf.json'):
+    log.info('Found %s' % confPath + '/forecast_conf.json')
     confFile = path.abspath(confPath + '/forecast_conf.json')
 else:
     confFile = path.abspath(confPath + '/example_forecast_conf.json')
-config.readConf(confFile)
+
+settings = config.readConf(confFile)['applets']['forecast']['settings']
 
 mediaDir = path.abspath(appPath + '/media')
 imagesDir = path.abspath(mediaDir + '/images')
 
-def check_key():
-    global connLight, log
-    log.debug('Checking provided key')
-
-    test_url = darkSkyURL + apiKey + '/37.8267,-122.4233'
-    res = requests.get(test_url)
-    if res:
-        log.info('Valid key!')
-        connLight = True
-    else:
-        log.warning('Invalid key!')
-        log.debug('Popping popup to advise user of this')
-        sg.PopupError('Invalid key!')
-        connLight = False
-
-
-settings = config.readConf(confFile)['applets']['forecast']['settings']
 cords = False
 address = False
 
+if not settings['address']['lat']:
+    log.warn('Unable to find location info in settings. Looking for general location via IP address...')
+    log.debug('Calling IPtoGP')
+    findAddress = getByIP()
+    setAddress = settings['address']
+    location = {}
+    for key in (findAddress.viewkeys() | setAddress.keys()):
+        if key in settings: location.setdefault(key, []).append(settings[key])
+        if key in findAddress: location.setdefault(key, []).append(findAddress[key])
 
-def getByIP():
-    service = 'ip-api.com'
-    ip2gpURL = 'http://ip-api.com/json/?fields=city,zip,lat,lon,timezone,isp,region'
-    log.info('Checking for general location via user\'s IP Address with %s' % service)
-    res = requests.get(ip2gpURL)
-    if res.status_code == 200:
-        return res.json()
+else:
+    location = settings['address']
 
+region = location['region']
+city = location['city']
+zipcode = location['zip']
+lat = location['lat']
+lon = location['lon']
 
+log.debug('Found location information %s' % location)
 
-
-def determine_cords():
-    global settings, log, address, cords
-    conf_locale = settings['location']
-    conf_addr = conf_locale['address']
-
-    log.debug('Checking to see if user has locale set...')
-    if conf_locale['lat']:
-        log.debug('Found entry for latitude, looking for longitude')
-        if conf_locale['lon']:
-            log.debug('Found entry for longitude')
-            log.debug('Feeding list containing [lat, lng] to \'cords\' ')
-            cords += [conf_locale['lat'], conf_locale['lon']]
-        else:
-            log.warning('Found latitude in config file but not longitude, ignoring both')
-            cords = False
-
-    else:
-        log.warning('Could not find an entry for user\'s latitude')
-        cords = False
-
-
-
-if not cords:
-    addy = getByIP()
-    settings = settings['location']
-    print(addy)
-    result = {}
-    for key in (settings.viewkeys() | addy.keys()):
-        if key in settings: result.setdefault(key, []).append(settings[key])
-        if key in addy: result.setdefault(key, []).append(addy[key])
-
-   print(result)
-
-
-
-print(settings)
-
+sg.change_look_and_feel(settings['preferences']['theme'])
 
 log.debug('Looking for darksky API key')
-apiKey = settings['api']['darksky']['key']
 if settings['api']['darksky']['key']:
     log.debug('Found key')
 else:
@@ -122,8 +80,12 @@ else:
 
 apiKey = settings['api']['darksky']['key']
 
-check_key()
-
+if check_key(apiKey):
+    log.debug('ConnLight On')
+    connLight = True
+else:
+    log.debug('ConnLight Off')
+    connLight = False
 
 appMenu = [['Settings', ['Location']]]
 
@@ -131,11 +93,18 @@ if connLight:
     lightImage = imagesDir + '/light_on.png'
 else:
     lightImage = imagesDir + '/light_off.png'
+    sg.PopupError('Invalid key!')
+
+weather = getWeather(lat, lon, apiKey)
 
 layout = [
     [sg.Menu(appMenu)],
-    [sg.Text('Welcome to adaForecast!')],
-    [sg.Text('Connection Status:'), sg.Image(lightImage, key='_STATUS_')],
+    [sg.Text('adaWeather', size=(30, 1), justification='center', font=("Helvetica", 25), relief=sg.RELIEF_RIDGE)],
+    [sg.Frame(layout=[
+        [sg.Text('Conditions', justification='left'), sg.Image(getIcon(weather['icon'])),
+         sg.InputText(weather['summary'], key='_WSUMMARY_')],
+        [sg.Text('Temp', justification='left'), sg.InputText(weather['temperature'], key='temp')]],
+        title='Current Weather', relief=sg.RELIEF_SUNKEN, tooltip='Put your GPS cords here')],
     [sg.Button('OK')]
 ]
 
@@ -149,23 +118,27 @@ while True:
     if event is None:
         log.info('User exited the app')
         mainWin.Close()
+        exit()
 
     if not localeWinActive and event == 'Location':
         localeWinActive = True
         log.debug('User entered the location window')
 
-        if cords:
-            guiLat = cords[0]
-            guiLng = cords[1]
+        if settings['address']['lat']:
+            guiLat = settings['address']['lat']
+            guiLng = settings['address']['lon']
+
         else:
             guiLat = ''
             guiLng = ''
 
         localeWinLayout = [
-            [sg.Text('Location Information', size=(30, 1), justification='center', font=("Helvetica", 25), relief=sg.RELIEF_RIDGE)],
-            [sg.Frame( layout = [
-                [sg.Text('Latitude', justification='left'), sg.InputText(guiLat,  key='_LAT_')],
-                [sg.Text('Longitude', justification='left'), sg.InputText(guiLng,  key='_LNG_')]], title='Coordinates', relief=sg.RELIEF_SUNKEN, tooltip='Put your GPS cords here')],
+            [sg.Text('Location Information', size=(30, 1), justification='center', font=("Helvetica", 25),
+                     relief=sg.RELIEF_RIDGE)],
+            [sg.Frame(layout=[
+                [sg.Text('Latitude', justification='left'), sg.InputText(guiLat, key='_LAT_')],
+                [sg.Text('Longitude', justification='left'), sg.InputText(guiLng, key='_LNG_')]], title='Coordinates',
+                relief=sg.RELIEF_SUNKEN, tooltip='Put your GPS cords here')],
             [sg.Button('OK'), sg.Button('Cancel')]
         ]
 
