@@ -7,6 +7,8 @@ from scripts.py.forecast.IPtoGP import getByIP
 from scripts.py.forecast.weather import check_key
 from scripts.py.forecast.weather import getWeather
 from scripts.py.forecast.weather import getIcon
+from scripts.py.forecast.weather import get_compass
+from scripts.py.forecast.weather import conn_image
 
 name = 'Forecast'
 
@@ -34,7 +36,6 @@ else:
 settings = config.readConf(confFile)['applets']['forecast']['settings']
 
 mediaDir = path.abspath(appPath + '/media')
-imagesDir = path.abspath(mediaDir + '/images')
 
 cords = False
 address = False
@@ -82,36 +83,41 @@ apiKey = settings['api']['darksky']['key']
 
 if check_key(apiKey):
     log.debug('ConnLight On')
-    connLight = True
+    conn_light = conn_image(True)
 else:
     log.debug('ConnLight Off')
-    connLight = False
-
-appMenu = [['Settings', ['Location']]]
-
-if connLight:
-    lightImage = imagesDir + '/light_on.png'
-else:
-    lightImage = imagesDir + '/light_off.png'
-    sg.PopupError('Invalid key!')
+    conn_light = conn_image(False)
 
 weather = getWeather(lat, lon, apiKey)
+w_bearing = get_compass(weather['windBearing'])
+wind = 'Blowing %s at %s/MpH (Gusting at %s)' % (
+    w_bearing,
+    weather['windSpeed'],
+    weather['windGust']
+)
+
+weather_frame = [
+    [sg.Text('Conditions', justification='center'), sg.Image(getIcon(weather['icon']), pad=((25, 50), (0, 0))),
+     sg.Text(weather['summary'], key='_WSUMMARY_', justification='center')],
+    [sg.Text('Temp:', justification='left'), sg.VerticalSeparator(pad=((105, 100), (0, 0))),
+     sg.Text(weather['temperature'], key='temp')],
+    [sg.Text('Feels Like:', justification='left'), sg.VerticalSeparator(pad=((72, 100), (0, 0))),
+     sg.Text(weather['apparentTemperature'], key='realFeel')],
+    [sg.Text('Wind:', justification='left'), sg.VerticalSeparator(pad=((109, 100), (0, 0))), sg.Text(wind, key='WWIND')]
+]
+
+appMenu = [['Settings', ['Location', 'Weather API']]]
 
 layout = [
     [sg.Menu(appMenu)],
-    [sg.Text('adaWeather', size=(30, 1), justification='center', font=("Helvetica", 25), relief=sg.RELIEF_RIDGE)],
-    [sg.Frame(layout=[
-        [sg.Text('Conditions', justification='left'), sg.Image(getIcon(weather['icon'])),
-         sg.InputText(weather['summary'], key='_WSUMMARY_')],
-        [sg.Text('Temp', justification='left'), sg.InputText(weather['temperature'], key='temp')]],
-        title='Current Weather', relief=sg.RELIEF_SUNKEN, tooltip='Put your GPS cords here')],
+    [sg.Frame('Current Weather', weather_frame, font='Any 18', title_color='blue')],
     [sg.Button('OK')]
 ]
 
-
-mainWin = sg.Window('adaForecast', layout)
+mainWin = sg.Window('adaForecast', layout, size=[700, 300])
 prefWinActive = False
 localeWinActive = False
+wPrefsWinActive = False
 
 while True:
     event, values = mainWin.Read(timeout=100)
@@ -149,5 +155,31 @@ while True:
         if localeEvent is None or localeEvent == 'Cancel':
             localeWinActive = False
             localeWin.Close()
+
+    if not wPrefsWinActive and event == 'Weather API':
+        wPrefsWinActive = True
+        log.debug('User entered the Weather API Preferences window')
+
+        if settings['api']['darksky']['key']:
+            user_key = apiKey
+        else:
+            user_key = 'None'
+
+        wPrefsWinLayoutFrame = [
+            [sg.Text('API Key:'), sg.InputText(user_key), sg.Button('Test', disabled=True)],
+            [sg.Text('Is key valid?'), sg.Image(conn_light)]
+        ]
+
+        wPrefsWinLayout = [
+            [sg.Frame('API Settings', wPrefsWinLayoutFrame, font='Any 18', title_color='blue')],
+            [sg.Submit(), sg.Cancel()]
+        ]
+        wPrefsWin = sg.Window('Weather Preferences', wPrefsWinLayout)
+
+    if wPrefsWinActive:
+        wPrefsEvent, wPrefsVal = wPrefsWin.Read(timeout=100)
+        if wPrefsEvent is None or wPrefsEvent == 'Cancel':
+            wPrefsWinActive = False
+            wPrefsWin.Close()
 
 mainWin.close()
