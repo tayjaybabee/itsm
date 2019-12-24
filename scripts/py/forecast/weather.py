@@ -10,6 +10,7 @@ name = 'Forecast-Weather'
 log = logger.setup_logger(name)
 
 iconDir = path.abspath(path.dirname(__file__) + '/media/icons/weather_conditions/static')
+print(iconDir)
 mediaDir = path.abspath(appPath + '/media')
 imagesDir = path.abspath(mediaDir + '/images')
 
@@ -59,3 +60,6 @@ def getIcon(icon):
 
     if icon == 'clear-night':
         return str(iconDir + '/night.png')
+
+    if icon == 'clear-day':
+        return str(iconDir + '/day.png')
