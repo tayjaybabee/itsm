@@ -2,7 +2,9 @@
 
 import PySimpleGUI as sg
 import os.path as path
-from scripts.py.application import logger
+import sys
+sys.path.append(path.abspath('.'))
+from scripts.py.application.logger import setup_logger
 from scripts.py.forecast.IPtoGP import getByIP
 from scripts.py.forecast.weather import check_key
 from scripts.py.forecast.weather import getWeather
@@ -10,7 +12,7 @@ from scripts.py.forecast.weather import getIcon
 
 name = 'Forecast'
 
-log = logger.setup_logger(name)
+log = setup_logger(name)
 log.info('The logger is awake')
 
 from scripts.py.application import itsmConfig as config
