@@ -65,7 +65,34 @@ lon = location['lon']
 
 log.debug('Found location information %s' % location)
 
-print(settings)
+wind = False
+
+
+def refresh_weather():
+    global wind
+    log.debug('Fetching weather again')
+    weather = getWeather(lat, lon, apiKey)
+    log.debug('Now updating window')
+    mainWin['WCONDITIONSICON'].Update(getIcon(weather['icon']))
+    log.debug('Updated conditions icon to %s' % mainWin['WCONDITIONSICON'].Filename)
+    mainWin['WSUMMARY'].Update(weather['summary'])
+    log.debug('Updated Conditions readout to %s' % mainWin['WSUMMARY'].DisplayText)
+    mainWin['temp'].Update(str(weather['temperature']) + ' °' + 'F')
+    log.debug('Updated Temp readout to %s' % mainWin['temp'].DisplayText)
+    mainWin['realFeel'].Update(str(weather['apparentTemperature']) + ' °' + 'F')
+    log.debug('Updated RealFeel readout to %s' % mainWin['realFeel'].DisplayText)
+
+    wind = 'Blowing %s at %s/MpH (Gusting at %s)' % (
+        w_bearing,
+        weather['windSpeed'],
+        weather['windGust']
+    )
+    mainWin['WWIND'].Update(wind)
+    log.debug('Updated wind to: %s' % wind)
+    log.debug('Refreshing window...')
+    mainWin.Read(timeout=100)
+    log.debug('Weather data refresh complete!')
+
 
 sg.change_look_and_feel(settings['applets']['forecast']['settings']['preferences']['theme'])
 
@@ -87,13 +114,6 @@ else:
 apiKey = settings['applets']['forecast']['settings']['api']['darksky']['key']
 conf.save(settings, existingConfFilepath)
 
-if check_key(apiKey):
-    log.debug('ConnLight On')
-    conn_light = conn_image(True)
-else:
-    log.debug('ConnLight Off')
-    conn_light = conn_image(False)
-
 weather = getWeather(lat, lon, apiKey)
 w_bearing = get_compass(weather['windBearing'])
 wind = 'Blowing %s at %s/MpH (Gusting at %s)' % (
@@ -103,15 +123,17 @@ wind = 'Blowing %s at %s/MpH (Gusting at %s)' % (
 )
 
 weather_frame = [
-    [sg.Text('Conditions', justification='center'), sg.Image(getIcon(weather['icon']), pad=((25, 50), (0, 0))),
-     sg.Text(weather['summary'], key='_WSUMMARY_', justification='center')],
+    [sg.Text('Conditions', justification='center', key='WCONDITIONSLABEL'),
+     sg.Image(getIcon(weather['icon']), key='WCONDITIONSICON', pad=((25, 50), (0, 0))),
+     sg.Text(weather['summary'], key='WSUMMARY', justification='center')],
     [sg.Text('Temp:', justification='left'), sg.VerticalSeparator(pad=((105, 100), (0, 0))),
-     sg.Text(weather['temperature'], key='temp')],
+     sg.Text(str(weather['temperature']) + ' °' + 'F', key='temp')],
     [sg.Text('Feels Like:', justification='left'), sg.VerticalSeparator(pad=((72, 100), (0, 0))),
-     sg.Text(weather['apparentTemperature'], key='realFeel')],
-    [sg.Text('Wind:', justification='left'), sg.VerticalSeparator(pad=((109, 100), (0, 0))), sg.Text(wind, key='WWIND')]
+     sg.Text(str(weather['apparentTemperature']) + ' °' + 'F', key='realFeel')],
+    [sg.Text('Wind:', justification='left'), sg.VerticalSeparator(pad=((109, 100), (0, 0))),
+     sg.Text(wind, key='WWIND')],
+    [sg.Button('Refresh')]
 ]
-
 appMenu = [['Settings', ['Location', 'Weather API']]]
 
 layout = [
@@ -120,7 +142,7 @@ layout = [
     [sg.Button('OK')]
 ]
 
-mainWin = sg.Window('adaForecast', layout, size=[700, 300])
+mainWin = sg.Window('adaForecast', layout, size=[800, 600])
 prefWinActive = False
 localeWinActive = False
 wPrefsWinActive = False
@@ -132,13 +154,17 @@ while True:
         mainWin.Close()
         exit()
 
+    if event == 'Refresh':
+        log.debug('User refreshed the weather info')
+        refresh_weather()
+
     if not localeWinActive and event == 'Location':
         localeWinActive = True
         log.debug('User entered the location window')
 
-        if settings['address']['lat']:
-            guiLat = settings['address']['lat']
-            guiLng = settings['address']['lon']
+        if location['lat']:
+            guiLat = location['lat']
+            guiLng = location['lon']
 
         else:
             guiLat = ''
@@ -149,7 +175,7 @@ while True:
                      relief=sg.RELIEF_RIDGE)],
             [sg.Frame(layout=[
                 [sg.Text('Latitude', justification='left'), sg.InputText(guiLat, key='_LAT_')],
-                [sg.Text('Longitude', justification='left'), sg.InputText(guiLng, key='_LNG_')]], title='Coordinates',
+                [sg.Text('Longitude', justification='left'), sg.InputText(guiLng, key='_LON_')]], title='Coordinates',
                 relief=sg.RELIEF_SUNKEN, tooltip='Put your GPS cords here')],
             [sg.Button('OK'), sg.Button('Cancel')]
         ]
@@ -162,18 +188,27 @@ while True:
             localeWinActive = False
             localeWin.Close()
 
+        if localeEvent is 'OK':
+            settings['applets']['forecast']['settings']['address']['lat'] = str(localeVal['_LAT_'])
+            log.debug('Latitude set to: %s' % localeVal['_LAT_'])
+            settings['applets']['forecast']['settings']['address']['lon'] = str(localeVal['_LON_'])
+            log.debug('Longitude set to %s' % localeVal['_LON_'])
+            log.debug('Saving new location settings')
+            conf.save(settings, existingConfFilepath)
+            localeWin.Close()
+
     if not wPrefsWinActive and event == 'Weather API':
         wPrefsWinActive = True
         log.debug('User entered the Weather API Preferences window')
 
-        if settings['api']['darksky']['key']:
+        if settings['applets']['forecast']['settings']['api']['darksky']['key']:
             user_key = apiKey
         else:
             user_key = 'None'
 
         wPrefsWinLayoutFrame = [
             [sg.Text('API Key:'), sg.InputText(user_key), sg.Button('Test', disabled=True)],
-            [sg.Text('Is key valid?'), sg.Image(conn_light)]
+            [sg.Text('Is key valid?'), sg.Image(conn_image(check_key(user_key)))]
         ]
 
         wPrefsWinLayout = [
